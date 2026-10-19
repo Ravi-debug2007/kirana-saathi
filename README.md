@@ -1,4 +1,8 @@
-# Kirana Shop Manager
+# KiranaSaathi — Voice-First AI for Kirana Stores
+
+**Buildathon track:** Agents & Automation
+
+KiranaSaathi is an AI-powered, voice-first shop management app for Indian kirana stores. It supports Telugu, Hindi, English, mixed-language input, and pasted WhatsApp orders while keeping bill edits and confirmations under the shopkeeper's control.
 
 Android-first, offline-first tooling for Indian kirana counters. The repository is a TypeScript workspace with an Expo Router mobile app, a framework-independent domain package, and a Fastify AI gateway.
 
