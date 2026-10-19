@@ -6,8 +6,8 @@ This audit distinguishes code that exists from a complete, device-verified produ
 |---|---|---|
 | Expo Router Android-first shell and accessible controls | Implemented but not fully tested | `app/`, `src/components/ui.tsx`; TypeScript passed, native layout not device-tested. |
 | Product catalogue fields, aliases, safe prices, units, archive | Partially implemented | `packages/domain/src/index.ts` validates the model; `app/(tabs)/products.tsx` is a demo screen; no connected CRUD repository yet. |
-| Manual billing, deterministic totals, price overrides, drafts | Partially implemented | `confirmSale` and tests cover totals/payment; `app/bill/new.tsx` still uses demo line data and does not persist a real draft. |
-| Confirmed sale inventory deduction exactly once | Partially implemented | `InventoryLedger` idempotency test passes; SQLite tables exist; UI/service transaction wiring is not complete. |
+| Manual billing, deterministic totals, price overrides, drafts | Implemented but not fully tested | `src/lib/repositories.ts`, `app/bill/new.tsx`, and SQLite tests cover saved drafts, totals, price permission, and native repository wiring; Android UI still needs device verification. |
+| Confirmed sale inventory deduction exactly once | Implemented but not fully tested | SQLite transaction tests cover stock checks, rollback, duplicate confirmation, movement uniqueness, and audit; native Expo SQLite execution still needs device verification. |
 | Restock, returns, correction/reversal ledger | Partially implemented | Inventory reason types and schema exist; no complete screen/service flow or integration test. |
 | Paste-message and voice parsing | Partially implemented | `parseOrderText`, aliases, uncertainty, and `app/tools/voice.tsx` exist; speech provider and persisted editable draft are not wired. |
 | AI provider manager and real connection test | Implemented but not fully tested | `packages/api/src/providers.ts`, `/v1/providers/test`; request classification is tested only for gateway auth/quotes, no live credential call was possible. |
@@ -20,7 +20,7 @@ This audit distinguishes code that exists from a complete, device-verified produ
 | Suppliers and purchases | Not implemented | No supplier/purchase repository or screen yet. |
 | Dashboard and reports | Partially implemented | Dashboard exists with demo metrics; no report queries from durable records or verified-vs-estimate profit report. |
 | Receipts, history, exports/restore | Not implemented | Schema groundwork exists, but export/restore and correction receipt workflows are pending. |
-| Offline persistence, migrations, recovery, sync | Partially implemented | `src/lib/database.ts` has a versioned schema and idempotent movement insert; full repositories, recovery tests, and cloud sync are pending. |
+| Offline persistence, migrations, recovery, sync | Partially implemented | `src/lib/sqlite-schema.ts`, `src/lib/database.ts`, and repositories persist products/drafts/sales on native SQLite; full app restart/device tests, recovery scenarios, and cloud sync are pending. |
 | Security and secret handling | Implemented but not fully tested | `.env.example`, bearer gateway guard, redacted Fastify logger, and server-side provider route exist; production HTTPS/encryption/rate limits/deployment are not configured. |
 | Unit/API/E2E testing | Partially implemented | 10 offline unit/API tests pass; no Android E2E or live-provider tests were available. |
 
