@@ -91,7 +91,7 @@ export function parseOrderText(text: string, products: Product[]): ParsedItem[] 
   });
 }
 
-export type Permission = 'products.read' | 'products.write' | 'sales.create' | 'sales.cancel' | 'inventory.adjust' | 'udhaar.adjust' | 'reports.read' | 'settings.manage' | 'staff.manage';
+export type Permission = 'products.read' | 'products.write' | 'sales.create' | 'sales.priceOverride' | 'sales.cancel' | 'inventory.adjust' | 'udhaar.adjust' | 'reports.read' | 'settings.manage' | 'staff.manage';
 export type Staff = { id: string; name: string; permissions: readonly Permission[]; active: boolean };
 export type AuditRecord = { id: string; actorId: string; action: string; entity: string; entityId: string; metadata?: Record<string, string>; at: string };
 export const can = (staff: Staff, permission: Permission) => staff.active && staff.permissions.includes(permission);

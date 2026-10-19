@@ -115,7 +115,7 @@ export type ParsedItem = {
     uncertain: boolean;
 };
 export declare function parseOrderText(text: string, products: Product[]): ParsedItem[];
-export type Permission = 'products.read' | 'products.write' | 'sales.create' | 'sales.cancel' | 'inventory.adjust' | 'udhaar.adjust' | 'reports.read' | 'settings.manage' | 'staff.manage';
+export type Permission = 'products.read' | 'products.write' | 'sales.create' | 'sales.priceOverride' | 'sales.cancel' | 'inventory.adjust' | 'udhaar.adjust' | 'reports.read' | 'settings.manage' | 'staff.manage';
 export type Staff = {
     id: string;
     name: string;

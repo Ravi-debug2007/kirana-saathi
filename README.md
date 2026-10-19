@@ -64,7 +64,9 @@ npm run build
 
 - `app/` — Expo Router screens and navigation.
 - `src/components/` — accessible reusable mobile controls.
-- `src/lib/database.ts` — versioned `expo-sqlite` schema and transaction boundary.
+- `src/lib/database.ts` — native `expo-sqlite` connection and transaction adapter.
+- `src/lib/sqlite-schema.ts` — versioned schema, indexes, and additive migrations.
+- `src/lib/repositories.ts` — product, billing, customer, Udhaar, and audit repositories; sale confirmation is atomic and idempotent.
 - `src/lib/storage.ts` — local persistence abstraction and web/dev fallback.
 - `packages/domain/` — business rules; no React Native dependency.
 - `packages/api/` — Fastify gateway and server-side provider test adapters.

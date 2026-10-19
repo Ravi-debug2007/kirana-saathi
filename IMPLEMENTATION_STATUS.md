@@ -14,6 +14,8 @@ Updated: 2026-10-20
 - Fastify bearer protection and real provider connection-test route for Gemini, Groq, OpenRouter, Cerebras, and custom OpenAI-compatible endpoints.
 - Expo Router screens for dashboard, products, orders, Udhaar, inventory, new bill, barcode and quick voice/paste entry.
 - Versioned SQLite schema with products, bills, bill lines, inventory movements, customers, Udhaar, orders, history, and audit records.
+- SQLite repository layer for products, bills, customers, Udhaar, audit records, and atomic sale confirmation with stock checks, idempotency, rollback, and correction records.
+- The new-bill and products screens now read the saved local catalogue and create/confirm real local bills on native SQLite builds.
 
 ## Implemented but not fully tested
 
@@ -22,7 +24,7 @@ Updated: 2026-10-20
 
 ## Partial / blocked
 
-- Mobile screens still use demo data and do not yet persist real product/bill workflows through SQLite.
+- Dashboard, orders, Udhaar, inventory, and settings screens still use demo data; product listing and new billing now use SQLite repositories.
 - Gateway does not yet expose authenticated provider configuration, model discovery, connection testing, or durable metadata.
 - No emulator/device is available in this workspace, so E2E and real voice/barcode/camera checks are unavailable.
 - No production synchronization service, deployment, or messaging integration is configured.
@@ -32,8 +34,9 @@ Updated: 2026-10-20
 - `npm install` — completed during bootstrap.
 - `npm run typecheck` — passed on 2026-10-20 (domain, API, and mobile TypeScript).
 - `npm run build` — passed on 2026-10-20.
-- `npm test` — passed on 2026-10-20: 10 tests across domain and API suites.
+- `npm test` — passed on 2026-10-20: 15 tests across domain, SQLite repository, and API suites.
+- `npx vitest run src/lib/repositories.test.ts` — passed: 5 temporary in-memory SQLite integration tests.
 
 ## Next task
 
-Implement SQLite schema/repositories and connect the new-bill and inventory flows so a confirmed sale persists and deducts stock exactly once.
+Add product creation/editing and customer-selection screens, then connect persisted bill history, Udhaar UI, and correction/reversal workflows.
