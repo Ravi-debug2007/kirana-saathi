@@ -1,0 +1,4 @@
+export type Product = { id: string; name: string; sku: string; price: number; stock: number; unit: string };
+export type Order = { id: string; customer: string; total: number; status: 'Paid' | 'Pending' | 'Udhaar'; date: string };
+export const products: Product[] = [{id:'1',name:'Masala Tea',sku:'8901001',price:120,stock:24,unit:'box'},{id:'2',name:'Toor Dal 1kg',sku:'8901002',price:160,stock:8,unit:'bag'},{id:'3',name:'Mustard Oil',sku:'8901003',price:145,stock:31,unit:'bottle'},{id:'4',name:'Basmati Rice 5kg',sku:'8901004',price:680,stock:4,unit:'bag'}];
+export const orders: Order[] = [{id:'#1048',customer:'Ravi General Store',total:1260,status:'Paid',date:'Today, 10:42 AM'},{id:'#1047',customer:'Anita Sharma',total:540,status:'Udhaar',date:'Today, 9:18 AM'},{id:'#1046',customer:'Corner Cafe',total:860,status:'Pending',date:'Yesterday'}];

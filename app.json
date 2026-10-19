@@ -1,0 +1,1 @@
+{"expo":{"name":"Shopkeeper","slug":"shopkeeper","scheme":"shopkeeper","version":"0.1.0","orientation":"portrait","plugins":["expo-router",["expo-camera",{"cameraPermission":"Shopkeeper uses your camera to scan product barcodes."}],"expo-sqlite"],"experiments":{"typedRoutes":true},"ios":{"supportsTablet":true},"android":{"adaptiveIcon":{"backgroundColor":"#0F766E"}}}}
