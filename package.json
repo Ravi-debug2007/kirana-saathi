@@ -1,9 +1,44 @@
 {
   "name": "kirana-shop-manager",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "main": "expo-router/entry",
-  "scripts": {"start":"expo start","android":"expo run:android","ios":"expo run:ios","web":"expo start --web","typecheck":"npm run build:domain && npm run typecheck:api && npm run typecheck:mobile","build:domain":"tsc -p packages/domain/tsconfig.json","typecheck:domain":"tsc -p packages/domain/tsconfig.json --noEmit","typecheck:api":"tsc -p packages/api/tsconfig.json --noEmit","typecheck:mobile":"tsc --noEmit --project tsconfig.mobile.json","test":"vitest run","build":"npm run typecheck","api:dev":"npm --workspace @kirana/api run dev"},
-  "dependencies": {"@expo/vector-icons":"^14.0.4","@react-native-async-storage/async-storage":"^2.1.0","expo":"^52.0.0","expo-camera":"^16.0.10","expo-clipboard":"^7.0.1","expo-router":"^4.0.17","expo-sqlite":"^15.0.5","expo-status-bar":"^2.0.0","expo-speech":"^13.0.1","react":"18.3.1","react-native":"0.76.5","react-native-safe-area-context":"4.12.0","react-native-screens":"~4.4.0"},
-  "devDependencies": {"@types/node":"^22.10.0","@types/react":"~18.3.12","typescript":"^5.7.2","vitest":"^2.1.8"}
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "typecheck": "npm run build:domain && npm run typecheck:api && npm run typecheck:mobile",
+    "build:domain": "tsc -p packages/domain/tsconfig.json",
+    "typecheck:domain": "tsc -p packages/domain/tsconfig.json --noEmit",
+    "typecheck:api": "tsc -p packages/api/tsconfig.json --noEmit",
+    "typecheck:mobile": "tsc --noEmit --project tsconfig.mobile.json",
+    "test": "vitest run",
+    "build": "npm run typecheck",
+    "api:dev": "npm --workspace @kirana/api run dev"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^14.0.4",
+    "@react-native-async-storage/async-storage": "^2.1.0",
+    "expo": "^52.0.0",
+    "expo-asset": "~11.0.5",
+    "expo-camera": "^16.0.10",
+    "expo-clipboard": "^7.0.1",
+    "expo-router": "^4.0.17",
+    "expo-speech": "^13.0.1",
+    "expo-sqlite": "^15.0.5",
+    "expo-status-bar": "^2.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.5",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "~18.3.12",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
 }

@@ -1,1 +1,36 @@
-{"expo":{"name":"KiranaSaathi","slug":"kirana-saathi","scheme":"kirana-saathi","version":"0.1.0","orientation":"portrait","plugins":["expo-router",["expo-camera",{"cameraPermission":"KiranaSaathi uses your camera to scan product barcodes."}],"expo-sqlite"],"experiments":{"typedRoutes":true},"ios":{"supportsTablet":true},"android":{"adaptiveIcon":{"backgroundColor":"#0F766E"}}}}
+{
+  "expo": {
+    "name": "KiranaSaathi",
+    "slug": "kirana-saathi",
+    "scheme": "kirana-saathi",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "KiranaSaathi uses your camera to scan product barcodes."
+        }
+      ],
+      "expo-sqlite",
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F766E"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.kiranasaathi"
+    }
+  }
+}

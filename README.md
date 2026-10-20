@@ -28,6 +28,8 @@ copy .env.example .env       # Windows
 # cp .env.example .env       # macOS/Linux
 ```
 
+If an existing checkout reports `The required package expo-asset cannot be found`, run `npm ci` again. `expo-asset@~11.0.5` is pinned for Expo SDK 52 in this repository.
+
 Provider keys are optional for local manual work. Never put them in the mobile app or commit `.env`.
 
 ## Run the mobile app
@@ -37,6 +39,8 @@ npm start
 # then press a, or use:
 npm run android
 ```
+
+`npm run android` requires an Android emulator already running or a USB-debuggable Android device. The Expo native prebuild can generate the `android/` directory, but it cannot start an emulator that is not installed/configured.
 
 The web target is useful for UI iteration but cannot prove native camera, microphone, or SQLite behaviour.
 

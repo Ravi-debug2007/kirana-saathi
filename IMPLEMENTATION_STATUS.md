@@ -39,6 +39,8 @@ Updated: 2026-10-20
 - `npm test` — passed on 2026-10-20: 15 tests across domain, SQLite repository, and API suites.
 - `npx vitest run src/lib/repositories.test.ts` — passed: 5 temporary in-memory SQLite integration tests.
 - `npx expo export --platform web` — blocked: `react-native-web@~0.19.13` is not installed; no dependency was added because this milestone targets Android and native UI verification still requires an Android build.
+- `npm start` — fixed: Expo SDK 52 requires the top-level `expo-asset` package; added `expo-asset@~11.0.5` and validated the resolved Expo config.
+- `npm run android` — prebuild completed and generated `android/`, then stopped because no Android device or emulator was connected/available.
 
 ## Next task
 
