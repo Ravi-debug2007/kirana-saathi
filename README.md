@@ -6,6 +6,10 @@ KiranaSaathi is an AI-powered, voice-first shop management app for Indian kirana
 
 Android-first, offline-first tooling for Indian kirana counters. The repository is a TypeScript workspace with an Expo Router mobile app, a framework-independent domain package, and a Fastify AI gateway.
 
+## QuestUI visual system
+
+The mobile UI uses a serious, restrained QuestUI-inspired language for a busy counter: `#1A0F0A` background, `#2C1A10` surfaces, `#3D2517` elevated surfaces, `#CA8A04` gold actions, `#991B1B` destructive/error states, `#581C87` special information, `#F5E6D3` primary text, `#BFA98A` secondary text, `#5C3D2E` borders, and `#22C55E` success. Shared tokens and controls live in `src/components/ui.tsx`; screens should use them instead of adding one-off colors. The current fallback typography uses platform serif styling for Cinzel/Spectral-like hierarchy until bundled font assets are supplied and verified on Android. Indic text should keep the system fallback path.
+
 ## Current status
 
 This is a working foundation, not a claim of production completeness. Manual screens, paise-safe domain rules, an idempotent ledger boundary, versioned SQLite schema, order parsing, staff permission helpers, and a real provider connection-test route are present. The mobile screens still contain clearly labelled demo data and need repository wiring before they are a complete store-management product. See [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) for the feature-by-feature evidence and limitations.

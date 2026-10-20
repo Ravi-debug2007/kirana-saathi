@@ -8,7 +8,7 @@ const screens = [
 ] as const;
 
 export default function TabLayout() {
-  return <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: '#0F766E', tabBarInactiveTintColor: '#81908D', tabBarStyle: { height: 64, paddingBottom: 8, paddingTop: 6 } }}>
+  return <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: '#CA8A04', tabBarInactiveTintColor: '#BFA98A', tabBarStyle: { height: 68, paddingBottom: 8, paddingTop: 6, backgroundColor: '#2C1A10', borderTopColor: '#5C3D2E', borderTopWidth: 1 }, tabBarLabelStyle: { fontFamily: 'serif', fontWeight: '700' } }}>
     {screens.map(([name, title, icon]) => <Tabs.Screen key={name} name={name} options={{ title, tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name={icon} color={color} size={size} /> }} />)}
   </Tabs>;
 }

@@ -6,6 +6,7 @@
 - [x] Add Fastify health and deterministic quote endpoint.
 - [x] Replace demo mobile data with a versioned SQLite schema, migrations, and repository boundary.
 - [x] Wire the product listing and new-bill confirmation flow to repositories.
+- [x] Apply QuestUI dark brown, gold, red, purple, and accessible shared mobile styling.
 - [ ] Wire inventory and Udhaar screens to repositories.
 - [ ] Add authenticated provider manager routes and provider adapters with live connection tests.
 - [ ] Add persistent staff accounts, order history, corrections, receipts, exports and sync queue.
