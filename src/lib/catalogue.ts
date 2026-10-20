@@ -9,6 +9,6 @@ export function openCatalogue() {
   const database = getDatabase();
   if (!database) throw new Error('Local SQLite is unavailable in the web preview. Use an Android development build.');
   const executor = createExpoExecutor(database);
-  return { products: new ProductRepository(executor), inventory: new InventoryRepository(executor) };
+   return { executor, products: new ProductRepository(executor), inventory: new InventoryRepository(executor) };
 }
 export const operationKey = () => `inventory_${Date.now()}_${Math.random().toString(36).slice(2)}`;

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { applySchema } from './sqlite-schema';
 import * as DatabaseTypes from './sqlite-schema';
-import { BillingRepository, CustomerRepository, InventoryRepository, ProductRepository, UdhaarRepository } from './repositories';
+import { BillingRepository, CustomerRepository, DashboardRepository, InventoryRepository, OrderRepository, ProductRepository, UdhaarRepository } from './repositories';
+import { createProduct, parseOrderText } from '../../packages/domain/src/index';
 type SqliteExecutor = DatabaseTypes.SqliteExecutor;
 
 function testDatabase(): SqliteExecutor {
@@ -28,6 +29,15 @@ function seed(executor: SqliteExecutor) {
 }
 
 describe('SQLite repositories', () => {
+  it('saves a received order without changing stock or revenue', () => {
+    const db = testDatabase(); seed(db); const orders = new OrderRepository(db); const product = createProduct({ id: 'rice', name: 'Rice', aliases: ['biyyam'], unit: 'kg', sellingPrice: 6500n, stock: 10, reorderLevel: 2 });
+    const saved = orders.create({ source: 'paste', message: '2 kg biyyam', items: parseOrderText('2 kg biyyam', [product]) });
+    expect(saved.status).toBe('Received'); expect(db.get<{ stock: number }>('SELECT stock FROM products WHERE id=\'rice\'')?.stock).toBe(10); expect(db.get<{ count: number }>('SELECT count(*) AS count FROM bills')?.count).toBe(0); expect(orders.list()[0].id).toBe(saved.id);
+  });
+  it('reads live dashboard totals from persisted records', () => {
+    const db = testDatabase(); seed(db); const timestamp = new Date().toISOString(); db.run('INSERT INTO bills (id,status,total_paise,payment_method,created_at,confirmed_at) VALUES (?,?,?,?,?,?)', 'b1', 'confirmed', 10000, 'cash', timestamp, timestamp);
+    expect(new DashboardRepository(db).today().salesPaise).toBe(10000n);
+  });
   it('persists products and drafts without touching stock', () => {
     const db = testDatabase(); seed(db); const products = new ProductRepository(db); const billing = new BillingRepository(db);
     const draft = billing.saveDraft({ lines: [{ productId: 'rice', quantity: 2, unit: 'kg' }] }, owner);

@@ -1,4 +1,4 @@
-import { can } from '../../packages/domain/src/index';
+import { can, type OrderStatus, type ParsedItem } from '../../packages/domain/src/index';
 import * as DomainTypes from '../../packages/domain/src/index';
 import * as DatabaseTypes from './sqlite-schema';
 type BillingDraft = DomainTypes.BillingDraft;
@@ -173,3 +173,24 @@ export class UdhaarRepository {
   }
 }
 export class AuditRepository { constructor(private readonly db: SqliteExecutor) {} list(entity: string, entityId: string): Array<{ action: string; actor_id: string; metadata_json?: string; created_at: string }> { return this.db.all('SELECT action,actor_id,metadata_json,created_at FROM audit_records WHERE entity=? AND entity_id=? ORDER BY created_at', entity, entityId); } }
+
+export type StoredOrder = { id: string; status: OrderStatus; source: 'paste' | 'voice' | 'manual'; message: string; createdAt: string; items: ParsedItem[] };
+export class OrderRepository {
+  constructor(private readonly db: SqliteExecutor) {}
+  create(input: { source: StoredOrder['source']; message: string; items: ParsedItem[] }): StoredOrder {
+    if (!input.message.trim() || !input.items.length) throw new Error('An order message and at least one item are required');
+    const orderId = id('order'); const timestamp = now();
+    this.db.transaction(() => {
+      this.db.run('INSERT INTO orders (id,status,source,message,created_at) VALUES (?,?,?,?,?)', orderId, 'Received', input.source, input.message.trim(), timestamp);
+      this.db.run('INSERT INTO order_status_history (id,order_id,status,actor_id,created_at) VALUES (?,?,?,?,?)', id('order-status'), orderId, 'Received', 'local-owner', timestamp);
+    });
+    return { id: orderId, status: 'Received', source: input.source, message: input.message.trim(), createdAt: timestamp, items: input.items };
+  }
+  list(limit = 50): Array<Omit<StoredOrder, 'items'>> { return this.db.all<{ id: string; status: OrderStatus; source: StoredOrder['source']; message: string; created_at: string }>('SELECT id,status,source,message,created_at FROM orders ORDER BY created_at DESC LIMIT ?', limit).map(row => ({ id: row.id, status: row.status, source: row.source, message: row.message, createdAt: row.created_at })); }
+}
+
+export type DashboardMetrics = { salesPaise: bigint; bills: number; cashUpiPaise: bigint; udhaarPaise: bigint; lowStock: number };
+export class DashboardRepository {
+  constructor(private readonly db: SqliteExecutor) {}
+  today(): DashboardMetrics { const start = new Date(); start.setHours(0, 0, 0, 0); const iso = start.toISOString(); const sales = this.db.get<{ total: number; bills: number; cash_upi: number }>('SELECT COALESCE(SUM(total_paise),0) AS total, COUNT(*) AS bills, COALESCE(SUM(CASE WHEN payment_method IN (\'cash\',\'upi\') THEN total_paise ELSE 0 END),0) AS cash_upi FROM bills WHERE status=\'confirmed\' AND confirmed_at >= ?', iso); const udhaar = this.db.get<{ total: number }>('SELECT COALESCE(SUM(CASE WHEN kind=\'credit\' THEN amount_paise ELSE -amount_paise END),0) AS total FROM udhaar_entries'); const low = this.db.get<{ count: number }>('SELECT COUNT(*) AS count FROM products WHERE active=1 AND stock <= reorder_level'); return { salesPaise: BigInt(sales?.total ?? 0), bills: sales?.bills ?? 0, cashUpiPaise: BigInt(sales?.cash_upi ?? 0), udhaarPaise: BigInt(udhaar?.total ?? 0), lowStock: low?.count ?? 0 }; }
+}

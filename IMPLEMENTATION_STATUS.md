@@ -17,6 +17,8 @@ Updated: 2026-10-20
 - SQLite repository layer for products, bills, customers, Udhaar, audit records, and atomic sale confirmation with stock checks, idempotency, rollback, and correction records.
 - The new-bill and products screens now read the saved local catalogue and create/confirm real local bills on native SQLite builds.
 - QuestUI visual tokens and shared dark/gold components are applied to the dashboard, products, billing, orders, Udhaar, inventory, barcode, voice, settings, and navigation surfaces.
+- Pasted-order entry now parses saved catalogue aliases into a review card and persists a `Received` order without changing stock or revenue.
+- Dashboard metrics now query persisted bills, payments, Udhaar, and low-stock counts instead of using demo totals.
 
 ## Implemented but not fully tested
 
@@ -26,17 +28,18 @@ Updated: 2026-10-20
 
 ## Partial / blocked
 
-- Dashboard, orders, Udhaar, inventory, and settings screens still use demo data; product listing and new billing now use SQLite repositories.
+- Orders, Udhaar, inventory, products, new billing, pasted-order storage, and dashboard metrics now use SQLite repositories. Settings remains a navigation/preferences shell.
 - Gateway does not yet expose authenticated provider configuration, model discovery, connection testing, or durable metadata.
 - No emulator/device is available in this workspace, so E2E and real voice/barcode/camera checks are unavailable.
 - No production synchronization service, deployment, or messaging integration is configured.
+- Provider manager settings UI, supplier/purchase records, staff account UI, backup/restore, and cloud synchronization remain unfinished.
 
 ## Actual checks
 
 - `npm install` — completed during bootstrap.
 - `npm run typecheck` — passed on 2026-10-20 (domain, API, and mobile TypeScript).
 - `npm run build` — passed on 2026-10-20.
-- `npm test` — passed on 2026-10-20: 15 tests across domain, SQLite repository, and API suites.
+- `npm test` — passed on 2026-10-20: 21 tests across domain, SQLite repository, and API suites.
 - `npx vitest run src/lib/repositories.test.ts` — passed: 5 temporary in-memory SQLite integration tests.
 - `npx expo export --platform web` — blocked: `react-native-web@~0.19.13` is not installed; no dependency was added because this milestone targets Android and native UI verification still requires an Android build.
 - `npm start` — fixed: Expo SDK 52 requires the top-level `expo-asset` package; added `expo-asset@~11.0.5` and validated the resolved Expo config.
