@@ -21,6 +21,8 @@ This is a working foundation, not a claim of production completeness. Manual scr
 - Android Studio/device for native camera, microphone, SQLite, and share verification.
 - JDK 17–23 for the Expo Android Gradle toolchain. JDK 27 is too new for the current Gradle/Groovy build and causes `Unsupported class file major version 71`.
 
+The repository is aligned to Expo SDK 52-compatible package versions. On Windows, set `JAVA_HOME` to JDK 21 before `npm run android`; if the emulator cannot reach Metro, run `adb reverse tcp:8081 tcp:8081` after the device is online.
+
 ## Setup
 
 ```sh

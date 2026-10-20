@@ -42,6 +42,10 @@ Updated: 2026-10-20
 - `npm start` — fixed: Expo SDK 52 requires the top-level `expo-asset` package; added `expo-asset@~11.0.5` and validated the resolved Expo config.
 - `npm run android` — prebuild completed and generated `android/`; the first attempt stopped because no Android device or emulator was connected/available. After starting the existing AVD, the next attempt reached Gradle and exposed the JDK compatibility blocker below.
 - Android emulator setup — an existing `api26` AVD was started successfully; hardware acceleration is available through WHPX and `adb devices` reported `emulator-5554` as ready. The native build then remained blocked by the installed JDK 27: Gradle 8.10.2/this Expo Android toolchain rejects class-file major version 71. A JDK 17–23 installation is required for `npm run android`.
+- JDK 21 was installed with Microsoft OpenJDK and Expo package versions were aligned with SDK 52 using `npx expo install --fix`.
+- Native Android build — passed with JDK 21: Gradle assembled `android/app/build/outputs/apk/debug/app-debug.apk`.
+- APK install — passed on the `api26` emulator with `adb install -r`; package `com.anonymous.kiranasaathi` launched successfully and reached `MainActivity`.
+- JS runtime smoke test — incomplete: the emulator lost its connection while Metro was not reachable through `10.0.2.2:8081`; the app logged the standard development-bundle loading error. The APK/native shell itself launched without a native crash.
 
 ## Next task
 
