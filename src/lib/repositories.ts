@@ -19,9 +19,69 @@ function mapProduct(row: ProductRow): Product { return { id: row.id, sku: row.sk
 
 export class ProductRepository {
   constructor(private readonly db: SqliteExecutor) {}
+  create(input: Omit<Product, 'id' | 'active' | 'stock'>, actor: Staff): Product {
+    if (!can(actor, 'products.write')) throw new Error('Forbidden: products.write');
+    const product = { ...input, id: id('product'), stock: 0, active: true };
+    validateProduct(product); this.save(product); return this.get(product.id)!;
+  }
+  update(productId: string, input: Omit<Product, 'id' | 'active' | 'stock'>, actor: Staff): Product {
+    if (!can(actor, 'products.write')) throw new Error('Forbidden: products.write');
+    this.db.transaction(() => {
+      const existing = this.get(productId);
+      if (!existing?.active) throw new Error('Active product not found');
+      const product = { ...input, id: existing.id, stock: existing.stock, active: existing.active };
+      validateProduct(product); this.save(product);
+    });
+    return this.get(productId)!;
+  }
+  archive(productId: string, actor: Staff): void {
+    if (!can(actor, 'products.write')) throw new Error('Forbidden: products.write');
+    if (this.db.run('UPDATE products SET active=0 WHERE id=?', productId).changes !== 1) throw new Error('Product not found');
+  }
+  list(): Product[] { return this.db.all<ProductRow>('SELECT * FROM products WHERE active=1 ORDER BY name').map(mapProduct); }
+  lowStock(): Product[] { return this.db.all<ProductRow>('SELECT * FROM products WHERE active=1 AND stock <= reorder_level ORDER BY name').map(mapProduct); }
   save(product: Product): void { this.db.run('INSERT INTO products (id, sku, name, brand, variant, aliases_json, unit, selling_price_paise, cost_price_paise, stock, reorder_level, barcode, expiry_date, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET sku=excluded.sku, name=excluded.name, brand=excluded.brand, variant=excluded.variant, aliases_json=excluded.aliases_json, unit=excluded.unit, selling_price_paise=excluded.selling_price_paise, cost_price_paise=excluded.cost_price_paise, stock=excluded.stock, reorder_level=excluded.reorder_level, barcode=excluded.barcode, expiry_date=excluded.expiry_date, active=excluded.active', product.id, product.sku ?? null, product.name, product.brand ?? null, product.variant ?? null, JSON.stringify(product.aliases), product.unit, product.sellingPrice === undefined ? null : paiseToSql(product.sellingPrice), product.costPrice === undefined ? null : paiseToSql(product.costPrice), product.stock, product.reorderLevel, product.barcode ?? null, product.expiryDate ?? null, product.active ? 1 : 0); }
   search(query = ''): Product[] { const text = `%${query.trim().toLocaleLowerCase()}%`; return this.db.all<ProductRow>('SELECT * FROM products WHERE active = 1 AND (lower(name) LIKE ? OR lower(brand) LIKE ? OR lower(aliases_json) LIKE ? OR barcode = ?) ORDER BY name LIMIT 50', text, text, text, query.trim()).map(mapProduct); }
   get(productId: string): Product | null { const row = this.db.get<ProductRow>('SELECT * FROM products WHERE id = ?', productId); return row ? mapProduct(row) : null; }
+}
+
+function validateProduct(product: Product): void {
+  if (!product.name.trim()) throw new Error('Product name is required');
+  if (!['piece', 'packet', 'box', 'carton', 'kg', 'g', 'litre', 'ml'].includes(product.unit)) throw new Error('Invalid unit');
+  if (!Number.isSafeInteger(product.reorderLevel) || product.reorderLevel < 0) throw new Error('Reorder level must be a non-negative whole number');
+  for (const price of [product.sellingPrice, product.costPrice]) if (price !== undefined && (price < 0n || price > BigInt(Number.MAX_SAFE_INTEGER))) throw new Error('Price is outside the supported range');
+}
+
+export type InventoryMovement = { id: string; product_id: string; delta: number; reason: string; reference_id: string | null; created_at: string };
+export class InventoryRepository {
+  constructor(private readonly db: SqliteExecutor) {}
+  movements(productId: string): InventoryMovement[] { return this.db.all<InventoryMovement>('SELECT * FROM inventory_movements WHERE product_id=? ORDER BY created_at DESC, rowid DESC', productId); }
+  restock(productId: string, quantity: number, key: string, actor: Staff): void {
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) throw new Error('Restock quantity must be a positive whole number');
+    this.move(productId, quantity, 'restock', key, actor);
+  }
+  adjust(productId: string, delta: number, reason: string, key: string, actor: Staff): void {
+    if (!reason.trim()) throw new Error('Adjustment reason is required');
+    this.move(productId, delta, `adjustment: ${reason.trim()}`, key, actor);
+  }
+  private move(productId: string, delta: number, reason: string, key: string, actor: Staff): void {
+    if (!can(actor, 'inventory.adjust')) throw new Error('Forbidden: inventory.adjust');
+    if (!key.trim()) throw new Error('Movement key is required');
+    if (!Number.isSafeInteger(delta) || delta === 0) throw new Error('Quantity must be a non-zero whole number');
+    this.db.transaction(() => {
+      const existing = this.db.get<InventoryMovement>('SELECT * FROM inventory_movements WHERE id=?', key);
+      if (existing) {
+        if (existing.product_id !== productId || existing.delta !== delta || existing.reason !== reason) throw new Error('Movement key already used for a different operation');
+        return;
+      }
+      const product = new ProductRepository(this.db).get(productId);
+      if (!product?.active) throw new Error('Active product not found');
+      const stock = product.stock + delta;
+      if (!Number.isSafeInteger(stock) || stock < 0) throw new Error('Insufficient stock or quantity outside supported range');
+      this.db.run('INSERT INTO inventory_movements (id,product_id,delta,reason,created_at) VALUES (?,?,?,?,?)', key, productId, delta, reason, now());
+      this.db.run('UPDATE products SET stock=? WHERE id=?', stock, productId);
+    });
+  }
 }
 
 export type DraftInput = { id?: string; lines: Array<{ productId: string; quantity: number; unitPrice?: bigint; priceOverride?: bigint; unit: Unit }>; customerId?: string; notes?: string; source?: BillingDraft['source'] };
@@ -69,9 +129,47 @@ export class BillingRepository {
     });
     return result!;
   }
-  recordCorrection(billId: string, actor: Staff, reason: string, metadata: Record<string, string> = {}): void { if (!can(actor, 'sales.cancel')) throw new Error('Forbidden: sales.cancel'); const bill = this.db.get<BillRow>('SELECT status FROM bills WHERE id=?', billId); if (!bill || bill.status !== 'confirmed') throw new Error('Only confirmed bills can be corrected'); this.db.run('CREATE TABLE IF NOT EXISTS bill_corrections (id TEXT PRIMARY KEY NOT NULL, bill_id TEXT NOT NULL REFERENCES bills(id), actor_id TEXT NOT NULL, reason TEXT NOT NULL, metadata_json TEXT NOT NULL, created_at TEXT NOT NULL)'); this.db.run('INSERT INTO bill_corrections (id, bill_id, actor_id, reason, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)', id('correction'), billId, actor.id, reason, JSON.stringify(metadata), now()); this.db.run('INSERT INTO audit_records (id, actor_id, action, entity, entity_id, metadata_json, created_at) VALUES (?, ?, \'bill.corrected\', \'bill\', ?, ?, ?)', id('audit'), actor.id, billId, JSON.stringify({ reason, ...metadata }), now()); }
+  corrections(billId: string): Array<{ id: string; actor_id: string; reason: string; metadata_json: string; created_at: string }> { return this.db.all('SELECT id,actor_id,reason,metadata_json,created_at FROM bill_corrections WHERE bill_id=? ORDER BY created_at DESC, rowid DESC', billId); }
+  recordCorrection(billId: string, actor: Staff, reason: string, metadata: Record<string, string> = {}): void {
+    if (!can(actor, 'sales.cancel')) throw new Error('Forbidden: sales.cancel');
+    if (!reason.trim()) throw new Error('A correction reason is required');
+    this.db.transaction(() => {
+      const bill = this.db.get<BillRow>('SELECT status FROM bills WHERE id=?', billId);
+      if (!bill || bill.status !== 'confirmed') throw new Error('Only confirmed bills can be corrected');
+      const timestamp = now();
+      this.db.run('INSERT INTO bill_corrections (id, bill_id, actor_id, reason, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)', id('correction'), billId, actor.id, reason.trim(), JSON.stringify(metadata), timestamp);
+      this.db.run('INSERT INTO audit_records (id, actor_id, action, entity, entity_id, metadata_json, created_at) VALUES (?, ?, \'bill.corrected\', \'bill\', ?, ?, ?)', id('audit'), actor.id, billId, JSON.stringify({ ...metadata, reason: reason.trim() }), timestamp);
+    });
+  }
 }
 
-export class CustomerRepository { constructor(private readonly db: SqliteExecutor) {} save(customer: { id: string; name: string; phone?: string; notes?: string }): void { this.db.run('INSERT INTO customers (id,name,phone,notes) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, phone=excluded.phone, notes=excluded.notes', customer.id, customer.name, customer.phone ?? null, customer.notes ?? null); } list(): Array<{ id: string; name: string; phone?: string; notes?: string }> { return this.db.all<{ id: string; name: string; phone?: string; notes?: string }>('SELECT id,name,phone,notes FROM customers WHERE archived=0 ORDER BY name'); } }
-export class UdhaarRepository { constructor(private readonly db: SqliteExecutor) {} balance(customerId: string): bigint { return this.db.all<{ amount_paise: number; kind: string }>('SELECT amount_paise,kind FROM udhaar_entries WHERE customer_id=?', customerId).reduce((sum, row) => sum + (row.kind === 'credit' ? BigInt(row.amount_paise) : -BigInt(row.amount_paise)), 0n); } recordPayment(customerId: string, amount: bigint, method: string, idempotencyKey: string, actor: Staff): void { if (!can(actor, 'udhaar.adjust')) throw new Error('Forbidden: udhaar.adjust'); if (amount <= 0n) throw new Error('Payment must be positive'); this.db.run('INSERT OR IGNORE INTO udhaar_entries (id,customer_id,amount_paise,kind,reason,reference_id,created_at) VALUES (?,?,?,?,?,?,?)', idempotencyKey, customerId, paiseToSql(amount), 'payment', method, idempotencyKey, now()); } }
+export type Customer = { id: string; name: string; phone?: string | null; notes?: string | null };
+export class CustomerRepository {
+  constructor(private readonly db: SqliteExecutor) {}
+  save(customer: Customer): void { if (!customer.name.trim()) throw new Error('Customer name is required'); this.db.run('INSERT INTO customers (id,name,phone,notes) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, phone=excluded.phone, notes=excluded.notes', customer.id, customer.name.trim(), customer.phone?.trim() || null, customer.notes?.trim() || null); }
+  create(input: Omit<Customer, 'id'>): Customer { const customer = { ...input, id: id('customer') }; this.save(customer); return this.get(customer.id)!; }
+  get(customerId: string): Customer | null { return this.db.get('SELECT id,name,phone,notes FROM customers WHERE id=?', customerId); }
+  search(query = ''): Customer[] { const text = `%${query.trim().replace(/[\\%_]/g, '\\$&')}%`; return this.db.all("SELECT id,name,phone,notes FROM customers WHERE archived=0 AND (name LIKE ? ESCAPE '\\' OR phone LIKE ? ESCAPE '\\') ORDER BY name, id", text, text); }
+  list(): Customer[] { return this.search(); }
+}
+export type UdhaarEntry = { id: string; amount: bigint; kind: string; reason: string | null; referenceId: string | null; createdAt: string };
+export class UdhaarRepository {
+  constructor(private readonly db: SqliteExecutor) {}
+  history(customerId: string): UdhaarEntry[] { return this.db.all<{ id: string; amount_paise: number; kind: string; reason: string | null; reference_id: string | null; created_at: string }>('SELECT * FROM udhaar_entries WHERE customer_id=? ORDER BY created_at DESC, rowid DESC', customerId).map(row => ({ id: row.id, amount: BigInt(row.amount_paise), kind: row.kind, reason: row.reason, referenceId: row.reference_id, createdAt: row.created_at })); }
+  balance(customerId: string): bigint { return this.history(customerId).reduce((sum, row) => sum + (row.kind === 'credit' ? row.amount : -row.amount), 0n); }
+  balances(query = ''): Array<Customer & { balance: bigint }> { return new CustomerRepository(this.db).search(query).map(customer => ({ ...customer, balance: this.balance(customer.id) })); }
+  recordPayment(customerId: string, amount: bigint, method: string, idempotencyKey: string, actor: Staff): void {
+    if (!can(actor, 'udhaar.adjust')) throw new Error('Forbidden: udhaar.adjust');
+    if (amount <= 0n || amount > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Payment must be positive and within the supported range');
+    if (!['cash', 'upi', 'card'].includes(method)) throw new Error('Choose cash, upi or card');
+    if (!idempotencyKey.trim()) throw new Error('Idempotency key is required');
+    this.db.transaction(() => {
+      const previous = this.db.get<{ customer_id: string; amount_paise: number; kind: string; reason: string }>('SELECT * FROM udhaar_entries WHERE id=?', idempotencyKey);
+      if (previous) { if (previous.customer_id !== customerId || BigInt(previous.amount_paise) !== amount || previous.kind !== 'payment' || previous.reason !== method) throw new Error('Idempotency key already used'); return; }
+      if (!new CustomerRepository(this.db).get(customerId)) throw new Error('Customer not found');
+      if (amount > this.balance(customerId)) throw new Error('Payment exceeds outstanding balance');
+      this.db.run('INSERT INTO udhaar_entries (id,customer_id,amount_paise,kind,reason,reference_id,created_at) VALUES (?,?,?,?,?,?,?)', idempotencyKey, customerId, paiseToSql(amount), 'payment', method, idempotencyKey, now());
+    });
+  }
+}
 export class AuditRepository { constructor(private readonly db: SqliteExecutor) {} list(entity: string, entityId: string): Array<{ action: string; actor_id: string; metadata_json?: string; created_at: string }> { return this.db.all('SELECT action,actor_id,metadata_json,created_at FROM audit_records WHERE entity=? AND entity_id=? ORDER BY created_at', entity, entityId); } }

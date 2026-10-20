@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applySchema } from './sqlite-schema';
 import * as DatabaseTypes from './sqlite-schema';
-import { BillingRepository, CustomerRepository, ProductRepository, UdhaarRepository } from './repositories';
+import { BillingRepository, CustomerRepository, InventoryRepository, ProductRepository, UdhaarRepository } from './repositories';
 type SqliteExecutor = DatabaseTypes.SqliteExecutor;
 
 function testDatabase(): SqliteExecutor {
@@ -18,7 +18,7 @@ function testDatabase(): SqliteExecutor {
   return executor;
 }
 
-const owner = { id: 'owner', name: 'Owner', active: true, permissions: ['sales.create', 'sales.priceOverride', 'sales.cancel', 'udhaar.adjust', 'products.write'] as const };
+const owner = { id: 'owner', name: 'Owner', active: true, permissions: ['sales.create', 'sales.priceOverride', 'sales.cancel', 'udhaar.adjust', 'products.write', 'inventory.adjust'] as const };
 const viewer = { id: 'viewer', name: 'Viewer', active: true, permissions: ['sales.create'] as const };
 
 function seed(executor: SqliteExecutor) {
@@ -57,5 +57,31 @@ describe('SQLite repositories', () => {
     const db = testDatabase(); const customers = new CustomerRepository(db); customers.save({ id: 'c1', name: 'Lakshmi' }); const udhaar = new UdhaarRepository(db);
     db.run('INSERT INTO udhaar_entries (id,customer_id,amount_paise,kind,created_at) VALUES (?,?,?,?,?)', 'credit-1', 'c1', 100000, 'credit', new Date().toISOString()); udhaar.recordPayment('c1', 30000n, 'upi', 'payment-1', owner); udhaar.recordPayment('c1', 30000n, 'upi', 'payment-1', owner);
     expect(udhaar.balance('c1')).toBe(70000n); expect(db.get<{ count: number }>('SELECT count(*) AS count FROM udhaar_entries WHERE id=?', 'payment-1')?.count).toBe(1);
+  });
+  it('searches and creates customers, and exposes Udhaar history', () => {
+    const db = testDatabase(); const customers = new CustomerRepository(db); const customer = customers.create({ name: 'Anita Sharma', phone: '98765' });
+    expect(customers.search('987')).toHaveLength(1);
+    db.run('INSERT INTO udhaar_entries (id,customer_id,amount_paise,kind,created_at) VALUES (?,?,?,?,?)', 'credit-2', customer.id, 50000, 'credit', new Date().toISOString());
+    const udhaar = new UdhaarRepository(db); expect(udhaar.balances()[0]?.balance).toBe(50000n); expect(udhaar.history(customer.id)[0]?.kind).toBe('credit');
+  });
+  it('rejects invalid corrections and returns correction history', () => {
+    const db = testDatabase(); seed(db); const billing = new BillingRepository(db); const draft = billing.saveDraft({ lines: [{ productId: 'rice', quantity: 1, unit: 'kg' }] }, owner); billing.confirm(draft.id, { method: 'cash', amount: 6500n }, 'op-history', owner);
+    expect(() => billing.recordCorrection(draft.id, owner, '')).toThrow('reason'); billing.recordCorrection(draft.id, owner, 'Customer requested correction'); expect(billing.corrections(draft.id)).toHaveLength(1);
+  });
+  it('creates, updates, archives products and persists inventory movements', () => {
+    const db = testDatabase(); const products = new ProductRepository(db); const inventory = new InventoryRepository(db);
+    const product = products.create({ name: 'Salt', aliases: ['uppu'], unit: 'kg', sellingPrice: 3000n, costPrice: 2200n, reorderLevel: 4 }, owner);
+    expect(products.get(product.id)?.stock).toBe(0);
+    products.update(product.id, { ...product, name: 'Iodized Salt' }, owner);
+    inventory.restock(product.id, 5, 'restock-1', owner); inventory.restock(product.id, 5, 'restock-1', owner);
+    expect(products.get(product.id)?.name).toBe('Iodized Salt'); expect(products.get(product.id)?.stock).toBe(5);
+    products.archive(product.id, owner); expect(products.search()).toHaveLength(0);
+  });
+  it('supports adjustments, low-stock queries, and rejects negative stock', () => {
+    const db = testDatabase(); seed(db); const inventory = new InventoryRepository(db); const products = new ProductRepository(db);
+    inventory.adjust('rice', -9, 'damaged', 'adjust-1', owner);
+    expect(products.lowStock().map(product => product.id)).toContain('rice');
+    expect(() => inventory.adjust('rice', -2, 'damaged', 'adjust-2', owner)).toThrow('Insufficient stock');
+    expect(inventory.movements('rice')).toHaveLength(1);
   });
 });
