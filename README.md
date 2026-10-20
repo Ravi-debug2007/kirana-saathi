@@ -19,6 +19,7 @@ This is a working foundation, not a claim of production completeness. Manual scr
 - Node.js version in `.nvmrc` (currently 20.x).
 - npm. No global packages are required.
 - Android Studio/device for native camera, microphone, SQLite, and share verification.
+- JDK 17–23 for the Expo Android Gradle toolchain. JDK 27 is too new for the current Gradle/Groovy build and causes `Unsupported class file major version 71`.
 
 ## Setup
 

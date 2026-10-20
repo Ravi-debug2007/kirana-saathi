@@ -40,7 +40,8 @@ Updated: 2026-10-20
 - `npx vitest run src/lib/repositories.test.ts` — passed: 5 temporary in-memory SQLite integration tests.
 - `npx expo export --platform web` — blocked: `react-native-web@~0.19.13` is not installed; no dependency was added because this milestone targets Android and native UI verification still requires an Android build.
 - `npm start` — fixed: Expo SDK 52 requires the top-level `expo-asset` package; added `expo-asset@~11.0.5` and validated the resolved Expo config.
-- `npm run android` — prebuild completed and generated `android/`, then stopped because no Android device or emulator was connected/available.
+- `npm run android` — prebuild completed and generated `android/`; the first attempt stopped because no Android device or emulator was connected/available. After starting the existing AVD, the next attempt reached Gradle and exposed the JDK compatibility blocker below.
+- Android emulator setup — an existing `api26` AVD was started successfully; hardware acceleration is available through WHPX and `adb devices` reported `emulator-5554` as ready. The native build then remained blocked by the installed JDK 27: Gradle 8.10.2/this Expo Android toolchain rejects class-file major version 71. A JDK 17–23 installation is required for `npm run android`.
 
 ## Next task
 
